@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Login – ShopWise{% endblock %}
+{% block content %}
+<div class="form-card">
+  <h2>👋 Welcome back</h2>
+  <form method="POST">
+    <div class="field-group">
+      <label>Username</label>
+      <input type="text" name="username" placeholder="Enter username" required/>
+    </div>
+    <div class="field-group">
+      <label>Password</label>
+      <input type="password" name="password" placeholder="Enter password" required/>
+    </div>
+    <button type="submit" class="btn btn-primary" style="width:100%;margin-top:.4rem;">Login</button>
+  </form>
+  <p class="form-hint" style="margin-top:1rem;">
+    <a href="/forgot-password">Forgot password?</a>
+  </p>
+  <p class="form-hint">No account? <a href="/register">Register here</a></p>
+</div>
+{% endblock %}

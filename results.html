@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+{% block title %}Results – ShopWise{% endblock %}
+{% block content %}
+
+<div class="results-header">
+  <div class="inner">
+    <h1>
+      {% if query %}Results for "{{ query }}"{% else %}All Products{% endif %}
+    </h1>
+    <div class="meta">
+      📍 Searching within <strong>{{ radius }} km</strong> of your location
+      &nbsp;·&nbsp; {{ total_nearby }} shop(s) found nearby
+    </div>
+    <div class="badges">
+      {% if total_nearby > 0 %}
+        <span class="badge green">✅ {{ total_nearby }} shops in range</span>
+      {% else %}
+        <span class="badge red">⚠️ No shops within {{ radius }} km</span>
+      {% endif %}
+      {% if grouped %}
+        <span class="badge">{{ grouped|length }} product(s) found</span>
+      {% endif %}
+      {% if smart_terms and smart_terms|length > 1 %}
+        <span class="badge" style="background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;">
+          🤖 AI also searched: {{ smart_terms[1:] | join(', ') }}
+        </span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="results-wrap">
+
+  <form class="re-search" action="/results" method="GET">
+    <input type="hidden" name="lat" value="{{ user_lat }}"/>
+    <input type="hidden" name="lon" value="{{ user_lon }}"/>
+    <input type="text" name="q" value="{{ query }}" placeholder="Search again…"/>
+    <select name="category">
+      <option value="">All Categories</option>
+      {% for cat in ['Groceries','Dairy','Oils','Pulses','Personal Care','Beverages','Snacks'] %}
+        <option value="{{ cat }}" {{ 'selected' if category==cat }}>{{ cat }}</option>
+      {% endfor %}
+    </select>
+    <select name="radius">
+      <option value="2"  {{ 'selected' if radius==2  }}>2 km</option>
+      <option value="5"  {{ 'selected' if radius==5  }}>5 km</option>
+      <option value="10" {{ 'selected' if radius==10 }}>10 km</option>
+      <option value="20" {{ 'selected' if radius==20 }}>20 km</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    <a href="/search" class="btn btn-secondary btn-sm">← New Search</a>
+  </form>
+
+  {% if grouped %}
+    {% for pname, stores in grouped.items() %}
+
+      {% set in_stock = stores | selectattr('quantity','greaterthan',0) | list %}
+      {% if in_stock %}
+        {% set min_price = in_stock | map(attribute='price') | list | min %}
+      {% else %}
+        {% set min_price = None %}
+      {% endif %}
+      {% set min_dist = stores | map(attribute='distance') | list | min %}
+
+      <div class="product-block">
+        <div class="product-head">
+          <span class="pname">🛍️ {{ pname }}</span>
+          <span class="pcount">{{ stores|length }} shop(s) nearby</span>
+        </div>
+
+        <!-- AI Price Insight Panel -->
+        <div class="ai-insight-wrap" id="ai-insight-{{ loop.index }}"
+             data-product="{{ pname }}"
+             data-stores='{{ stores | map(attribute="id") | list | tojson }}'>
+          <div class="ai-insight-inner">
+            <span class="ai-badge">🤖 AI Insight</span>
+            <span class="ai-insight-text" id="ai-insight-text-{{ loop.index }}">
+              <span class="ai-loading">Analyzing best deal…</span>
+            </span>
+          </div>
+        </div>
+        <div class="compare-table-wrap">
+          <table class="ct">
+            <thead>
+              <tr>
+                <th>Shop</th>
+                <th>Area</th>
+                <th>Distance</th>
+                <th>Price (₹)</th>
+                <th>Quality</th>
+                <th>Stock</th>
+                <th>Tag</th>
+                <th>Reserve</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in stores | sort(attribute='distance') %}
+              <tr>
+                <td>
+                  <strong>{{ s.shop_name }}</strong><br/>
+                  <span style="font-size:.78rem;color:var(--muted);">{{ s.address }}</span>
+                </td>
+                <td>{{ s.area }}</td>
+                <td>
+                  <span class="dist-chip">
+                    📍 {{ s.distance }} km
+                    {% if s.distance == min_dist %}
+                      <span style="color:var(--gold);font-size:.72rem;">nearest</span>
+                    {% endif %}
+                  </span>
+                </td>
+                <td class="{{ 'price-best' if (min_price and s.price == min_price and s.quantity > 0) else '' }}">
+                  ₹{{ '%.2f' | format(s.price) }}
+                </td>
+                <td>
+                  <span class="quality-badge quality-{{ (s.quality or 'Standard')|lower|replace(' ','') }}">
+                    {{ s.quality or 'Standard' }}
+                  </span>
+                </td>
+                <td>
+                  {% if s.quantity and s.quantity > 0 %}
+                    <span class="pill pill-in" id="stock-badge-{{ s.id }}">
+                      ✅ <span id="qty-label-{{ s.id }}">{{ s.quantity }} left</span>
+                    </span>
+                  {% else %}
+                    <span class="pill pill-out" id="stock-badge-{{ s.id }}">❌ Out of Stock</span>
+                  {% endif %}
+                  {% if s.updated_at %}
+                    <div class="stock-updated-ago" data-ts="{{ s.updated_at }}">
+                      <span class="ago-text">updated recently</span>
+                    </div>
+                  {% else %}
+                    <div class="stock-updated-ago">
+                      <span class="ago-text">stock not yet updated</span>
+                    </div>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if min_price and s.price == min_price and s.quantity > 0 %}
+                    <span class="pill pill-best">🏆 Best Deal</span>
+                  {% elif s.distance == min_dist %}
+                    <span class="pill pill-near">📍 Nearest</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if s.quantity and s.quantity > 0 %}
+                  <div class="reserve-row" id="reserve-ui-{{ s.id }}">
+                    <input
+                      type="number"
+                      id="qty-input-{{ s.id }}"
+                      min="1" max="{{ s.quantity }}" value="1"
+                      class="qty-input" title="How many units?"
+                    />
+                    <button class="btn btn-sm btn-primary"
+                            onclick="reserveItem({{ s.id }})">Reserve</button>
+                  </div>
+                  <div id="reserve-msg-{{ s.id }}" class="reserve-msg" style="display:none;"></div>
+                  {% else %}
+                  <span style="font-size:.78rem;color:var(--muted);">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endfor %}
+
+  {% else %}
+    <div class="no-results">
+      <div class="icon">🔎</div>
+      <h3>No results found</h3>
+      {% if total_nearby == 0 %}
+        <p>No shops found within <strong>{{ radius }} km</strong>. Try increasing the radius.</p>
+      {% else %}
+        <p>No matching products in the {{ total_nearby }} nearby shop(s). Try a different search term.</p>
+      {% endif %}
+      <br/>
+      <a href="/search" class="btn btn-primary">← Back to Search</a>
+    </div>
+  {% endif %}
+
+</div>
+
+<style>
+.qty-input {
+  width: 60px; padding: .3rem .4rem;
+  border: 1.5px solid var(--border); border-radius: 6px;
+  font-size: .85rem; text-align: center;
+}
+.reserve-row { display: flex; gap: .4rem; align-items: center; }
+.reserve-msg {
+  margin-top: .35rem; font-size: .78rem;
+  padding: .25rem .5rem; border-radius: 6px;
+}
+.reserve-msg.ok  { background: #d4edda; color: #155724; }
+.reserve-msg.err { background: #f8d7da; color: #721c24; }
+
+.quality-badge {
+  padding: .18rem .55rem; border-radius: 999px;
+  font-size: .74rem; font-weight: 600; display: inline-block;
+}
+.quality-premium  { background: #fef3c7; color: #92400e; }
+.quality-standard { background: #dbeafe; color: #1d4ed8; }
+.quality-economy  { background: #f1f5f9; color: #475569; }
+.quality-organic  { background: #dcfce7; color: #15803d; }
+.quality-gradea   { background: #ede9fe; color: #5b21b6; }
+.quality-gradeb   { background: #f0f0f0; color: #374151; }
+.quality-local    { background: #ffedd5; color: #9a3412; }
+
+/* Stock updated-ago */
+.stock-updated-ago {
+  font-size: .70rem;
+  color: var(--muted);
+  margin-top: .3rem;
+  display: block;
+  line-height: 1.3;
+  font-style: italic;
+  letter-spacing: .01em;
+}
+.stock-updated-ago::before {
+  content: '⏱ ';
+  font-style: normal;
+}
+
+/* AI Insight panel */
+.ai-insight-wrap {
+  margin: .6rem 0 .8rem;
+  background: linear-gradient(90deg,#f5f3ff 0%,#ede9fe 100%);
+  border: 1px solid #c4b5fd;
+  border-radius: 10px;
+  padding: .55rem 1rem;
+  display: flex; align-items: flex-start;
+}
+.ai-insight-inner {
+  display: flex; align-items: flex-start; gap: .55rem; flex-wrap: wrap;
+}
+.ai-badge {
+  font-size: .72rem; font-weight: 700; background: #7c3aed;
+  color: #fff; border-radius: 999px; padding: .15rem .55rem;
+  white-space: nowrap; margin-top: .05rem;
+}
+.ai-insight-text {
+  font-size: .84rem; color: #3b1f7e; line-height: 1.45;
+}
+.ai-loading {
+  color: #7c3aed; font-style: italic; font-size: .8rem;
+}
+</style>
+
+<script>
+/* ── Reserve ── */
+async function reserveItem(productId) {
+  const input  = document.getElementById('qty-input-' + productId);
+  const wanted = parseInt(input.value, 10);
+  const msgBox = document.getElementById('reserve-msg-' + productId);
+  if (!wanted || wanted < 1) { showMsg(msgBox, 'Enter a valid quantity.', false); return; }
+
+  const btn = input.nextElementSibling;
+  btn.disabled = true; btn.textContent = '…';
+
+  try {
+    const res  = await fetch('/reserve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id: productId, qty_requested: wanted })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      const qtyLabel   = document.getElementById('qty-label-' + productId);
+      const stockBadge = document.getElementById('stock-badge-' + productId);
+      const reserveUI  = document.getElementById('reserve-ui-' + productId);
+      if (data.available_qty > 0) {
+        if (qtyLabel) qtyLabel.textContent = data.available_qty + ' left';
+        input.max = data.available_qty;
+        btn.disabled = false; btn.textContent = 'Reserve';
+      } else {
+        if (stockBadge) { stockBadge.className = 'pill pill-out'; stockBadge.innerHTML = '❌ Out of Stock'; }
+        if (reserveUI) reserveUI.style.display = 'none';
+      }
+      showMsg(msgBox, '✅ Reserved! <a href="/chat/' + data.reservation_id + '" style="color:#155724;font-weight:700;">💬 Chat with Shop</a>', true);
+    } else {
+      if (typeof data.available_qty !== 'undefined') {
+        input.max   = data.available_qty;
+        input.value = Math.min(wanted, data.available_qty) || 1;
+        const qtyLabel = document.getElementById('qty-label-' + productId);
+        if (qtyLabel) qtyLabel.textContent = data.available_qty + ' left';
+      }
+      showMsg(msgBox, '⚠️ ' + data.message, false);
+      btn.disabled = false; btn.textContent = 'Reserve';
+    }
+  } catch(e) {
+    showMsg(msgBox, '❌ Network error. Try again.', false);
+    btn.disabled = false; btn.textContent = 'Reserve';
+  }
+}
+
+function showMsg(el, text, ok) {
+  el.innerHTML = text;
+  el.className   = 'reserve-msg ' + (ok ? 'ok' : 'err');
+  el.style.display = 'block';
+  if (ok) setTimeout(() => { el.style.display = 'none'; }, 15000);
+}
+
+/* ── "Updated X ago" timestamps ── */
+function timeAgo(ts) {
+  const secs = Math.floor(Date.now() / 1000) - ts;
+  if (secs < 60)         return 'just now';
+  if (secs < 3600)       return Math.floor(secs / 60) + ' min ago';
+  if (secs < 86400)      return Math.floor(secs / 3600) + ' hr ago';
+  if (secs < 86400 * 7)  return Math.floor(secs / 86400) + ' day(s) ago';
+  return Math.floor(secs / 86400 / 7) + ' week(s) ago';
+}
+document.querySelectorAll('.stock-updated-ago[data-ts]').forEach(el => {
+  const ts = parseInt(el.dataset.ts, 10);
+  if (ts) el.querySelector('.ago-text').textContent = 'stock updated ' + timeAgo(ts);
+});
+document.querySelectorAll('.stock-updated-ago:not([data-ts])').forEach(el => {
+  el.style.display = 'none';
+});
+
+/* ── AI Price Insight ── */
+// Collect all store data embedded from template
+const _storeData = {};
+{% if grouped %}
+  {% for pname, stores in grouped.items() %}
+    {% for s in stores %}
+    _storeData[{{ s.id }}] = {
+      shop_name: {{ s.shop_name | tojson }},
+      price:     {{ s.price }},
+      distance:  {{ s.distance }},
+      quality:   {{ (s.quality or 'Standard') | tojson }},
+      quantity:  {{ s.quantity or 0 }}
+    };
+    {% endfor %}
+  {% endfor %}
+{% endif %}
+
+async function loadInsight(wrapEl) {
+  const product = wrapEl.dataset.product;
+  const ids     = JSON.parse(wrapEl.dataset.stores || '[]');
+  const stores  = ids.map(id => _storeData[id]).filter(Boolean);
+  const idx     = wrapEl.id.replace('ai-insight-', '');
+  const textEl  = document.getElementById('ai-insight-text-' + idx);
+  try {
+    const res  = await fetch('/ai/price-insight', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product, stores })
+    });
+    const data = await res.json();
+    if (data.insight) {
+      textEl.innerHTML = data.insight;
+    } else {
+      wrapEl.style.display = 'none';
+    }
+  } catch(e) {
+    wrapEl.style.display = 'none';
+  }
+}
+
+// Load insights one by one (staggered to avoid hammering)
+const insightPanels = Array.from(document.querySelectorAll('.ai-insight-wrap'));
+(async () => {
+  for (const panel of insightPanels) {
+    await loadInsight(panel);
+  }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% block title %}My Shop – ShopWise{% endblock %}
+{% block content %}
+
+<style>
+/* ── Qty display ──────────────────────────────────────────── */
+.qty-display {
+  cursor: pointer; font-weight: 600;
+  padding: .2rem .5rem; border-radius: 6px;
+  border: 1.5px dashed transparent;
+  transition: all .15s; display: inline-block;
+}
+.qty-display:hover { border-color: var(--accent); background: #fff5f5; }
+.qty-ok   { color: var(--green); }
+.qty-low  { color: var(--gold); }
+.qty-zero { color: #dc2626; }
+.qty-edit-box { display: flex; gap: .3rem; align-items: center; flex-wrap: wrap; }
+.qty-inline-input {
+  width: 68px; padding: .3rem .5rem;
+  border: 2px solid var(--accent); border-radius: 7px;
+  font-size: .88rem; text-align: center; outline: none;
+}
+.last-updated {
+  display: block; font-size: .65rem; color: var(--muted);
+  margin-top: .15rem; font-weight: 400;
+}
+
+/* ── Quality pills ─────────────────────────────────────────── */
+.quality-pill {
+  padding: .18rem .55rem; border-radius: 999px;
+  font-size: .74rem; font-weight: 600;
+}
+.quality-premium  { background: #fef3c7; color: #92400e; }
+.quality-standard { background: #dbeafe; color: #1d4ed8; }
+.quality-economy  { background: #f1f5f9; color: #475569; }
+.quality-organic  { background: #dcfce7; color: #15803d; }
+.quality-gradea   { background: #ede9fe; color: #5b21b6; }
+.quality-gradeb   { background: #f0f0f0; color: #374151; }
+.quality-local    { background: #ffedd5; color: #9a3412; }
+
+/* ── Reservation Notifications Panel ──────────────────────── */
+.res-notif-panel {
+  background: #fff;
+  border: 1.5px solid #fde68a;
+  border-radius: 14px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,.07);
+}
+.res-notif-header {
+  background: linear-gradient(90deg, #fff7ed, #fef3c7);
+  padding: .75rem 1.1rem;
+  font-weight: 700; font-size: .92rem; color: #78350f;
+  display: flex; align-items: center; gap: .6rem;
+}
+.unread-badge {
+  background: #e53e3e; color: #fff;
+  border-radius: 999px; padding: .1rem .55rem;
+  font-size: .7rem; font-weight: 700;
+}
+.res-notif-list { display: flex; flex-direction: column; }
+.res-notif-item {
+  display: flex; align-items: center; gap: .85rem;
+  padding: .75rem 1.1rem;
+  border-top: 1px solid #fef3c7;
+  transition: background .15s;
+}
+.res-notif-item.unread { background: #fffbeb; }
+.res-notif-item:hover  { background: #fef9ee; }
+.rni-icon { font-size: 1.3rem; flex-shrink: 0; }
+.rni-body { flex: 1; font-size: .85rem; }
+.rni-body strong { font-weight: 600; }
+.rni-time { font-size: .7rem; color: var(--muted); margin-top: .1rem; }
+.rni-status-pill {
+  display: inline-block; padding: .15rem .55rem;
+  border-radius: 999px; font-size: .7rem; font-weight: 700;
+}
+.rni-status-pill.pending     { background: #fef3c7; color: #92400e; }
+.rni-status-pill.seen        { background: #dbeafe; color: #1d4ed8; }
+.rni-status-pill.confirmed   { background: #dcfce7; color: #15803d; }
+.rni-status-pill.unavailable { background: #fee2e2; color: #991b1b; }
+.chat-link-btn {
+  padding: .38rem .9rem; border-radius: 8px;
+  background: var(--accent); color: #fff;
+  font-size: .78rem; font-weight: 600;
+  text-decoration: none; white-space: nowrap;
+  transition: opacity .15s; flex-shrink: 0;
+}
+.chat-link-btn:hover { opacity: .82; }
+</style>
+
+<div class="dash-head">
+  <div class="inner">
+    <div>
+      <h1>🏪 {{ shop.name }}</h1>
+      <p>{{ shop.address }} &nbsp;·&nbsp; 📍 {{ shop.area }}</p>
+      <p style="font-size:.8rem;color:rgba(255,255,255,.4);">Coords: {{ shop.lat }}, {{ shop.lon }}</p>
+    </div>
+    <div style="display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;">
+      <a href="/owner/edit_shop" class="btn btn-secondary">✏️ Edit Shop</a>
+      <a href="/owner/add" class="btn btn-gold">+ Add Product</a>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="num">{{ products|length }}</div>
+      <div class="lbl">Total Products</div>
+    </div>
+    <div class="stat-box">
+      <div class="num">{{ products|selectattr('quantity','greaterthan',0)|list|length }}</div>
+      <div class="lbl">In Stock</div>
+    </div>
+    <div class="stat-box">
+      <div class="num">{{ products|selectattr('quantity','equalto',0)|list|length }}</div>
+      <div class="lbl">Out of Stock</div>
+    </div>
+    <div class="stat-box">
+      <div class="num">{{ products|sum(attribute='quantity') }}</div>
+      <div class="lbl">Total Units</div>
+    </div>
+  </div>
+
+  <!-- ── Reservation Notifications Panel ─────────────────── -->
+  {% if reservations %}
+  <div class="res-notif-panel">
+    <div class="res-notif-header">
+      🔔 Customer Reservations
+      {% if unread_count > 0 %}
+        <span class="unread-badge">{{ unread_count }} new</span>
+      {% endif %}
+      <span style="margin-left:auto;font-size:.72rem;font-weight:400;opacity:.7;">
+        ℹ️ Only visible when you have the site open
+      </span>
+    </div>
+    <div class="res-notif-list">
+      {% for r in reservations %}
+      <div class="res-notif-item {{ 'unread' if r.status == 'pending' else '' }}">
+        <div class="rni-icon">
+          {% if r.status == 'pending' %}🆕
+          {% elif r.status == 'confirmed' %}✅
+          {% elif r.status == 'unavailable' %}❌
+          {% else %}👁{% endif %}
+        </div>
+        <div class="rni-body">
+          <strong>{{ r.customer_name }}</strong> reserved
+          <strong>{{ r.qty_reserved }}× {{ r.product_name }}</strong>
+          <div class="rni-time" id="rni-time-{{ r.id }}" data-ts="{{ r.created_at }}"></div>
+          <div class="rni-meta" style="margin-top:.2rem;">
+            <span class="rni-status-pill {{ r.status }}">
+              {% if r.status == 'pending' %}🕐 Pending
+              {% elif r.status == 'confirmed' %}✅ Confirmed
+              {% elif r.status == 'unavailable' %}❌ Unavailable
+              {% else %}👁 Seen{% endif %}
+            </span>
+          </div>
+        </div>
+        <a href="/chat/{{ r.id }}" class="chat-link-btn">💬 Chat</a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+    <h2 class="section-title" style="margin:0;">📦 My Products</h2>
+    <a href="/owner/add" class="btn btn-gold btn-sm">+ Add Product</a>
+  </div>
+
+  <p style="font-size:.8rem;color:var(--muted);margin-bottom:1rem;">
+    💡 <strong>Quick stock update:</strong> click the quantity number in the table to edit it instantly — no need to open the full edit page.
+  </p>
+
+  {% if products %}
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Product Name</th>
+          <th>Category</th>
+          <th>Price (₹)</th>
+          <th>Quality</th>
+          <th>Stock &amp; Last Updated</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+        <tr id="prod-row-{{ p.id }}">
+          <td style="color:var(--muted)">{{ loop.index }}</td>
+          <td><strong>{{ p.name }}</strong></td>
+          <td>
+            <span style="background:#f0f0f0;padding:.2rem .6rem;border-radius:20px;font-size:.78rem;">
+              {{ p.category }}
+            </span>
+          </td>
+          <td><strong>₹{{ '%.2f'|format(p.price) }}</strong></td>
+          <td>
+            <span class="quality-pill quality-{{ (p.quality or 'Standard')|lower|replace(' ','') }}">
+              {{ p.quality or 'Standard' }}
+            </span>
+          </td>
+          <td>
+            <div class="stock-inline" id="stock-wrap-{{ p.id }}">
+              <span
+                class="qty-display {% if p.quantity > 5 %}qty-ok{% elif p.quantity > 0 %}qty-low{% else %}qty-zero{% endif %}"
+                id="qty-display-{{ p.id }}"
+                onclick="startQtyEdit({{ p.id }}, {{ p.quantity or 0 }})"
+                title="Click to update stock instantly"
+              >{{ p.quantity or 0 }} units ✏️</span>
+              <span class="last-updated" id="last-updated-{{ p.id }}"
+                    data-ts="{{ p.updated_at or '' }}">
+                {% if p.updated_at %}
+                  Updated: <span class="ts-rel" data-ts="{{ p.updated_at }}"></span>
+                {% else %}
+                  Not updated yet
+                {% endif %}
+              </span>
+              <div class="qty-edit-box" id="qty-edit-{{ p.id }}" style="display:none;">
+                <input type="number" min="0" value="{{ p.quantity or 0 }}"
+                       id="qty-field-{{ p.id }}" class="qty-inline-input"
+                       onkeydown="handleQtyKey(event, {{ p.id }})"/>
+                <button class="btn btn-sm btn-primary" onclick="saveQty({{ p.id }})">✓</button>
+                <button class="btn btn-sm btn-secondary" onclick="cancelQtyEdit({{ p.id }})">✕</button>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="pill {% if p.quantity and p.quantity > 0 %}pill-in{% else %}pill-out{% endif %}"
+                  id="status-pill-{{ p.id }}">
+              {% if p.quantity and p.quantity > 0 %}✅ In Stock{% else %}❌ Out of Stock{% endif %}
+            </span>
+          </td>
+          <td>
+            <a href="/owner/edit/{{ p.id }}" class="btn btn-sm btn-gold">✏️ Edit</a>
+            <a href="/owner/delete/{{ p.id }}" class="btn btn-sm btn-danger"
+               onclick="return confirm('Delete {{ p.name }}?')">🗑️</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="no-results">
+    <div class="icon">📦</div>
+    <h3>No products yet</h3>
+    <p>Start adding products so customers can find your shop!</p>
+    <br/>
+    <a href="/owner/add" class="btn btn-primary">+ Add Your First Product</a>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+// ── Relative time helper ──────────────────────────────────────
+function relTime(ts) {
+  if (!ts) return '';
+  const diff = Math.floor(Date.now() / 1000) - parseInt(ts);
+  if (diff < 60)   return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + ' min ago';
+  if (diff < 86400) return Math.floor(diff/3600) + ' hr ago';
+  return Math.floor(diff/86400) + ' day(s) ago';
+}
+
+function renderAllTimes() {
+  // Reservation times
+  document.querySelectorAll('[id^="rni-time-"]').forEach(el => {
+    const ts = el.getAttribute('data-ts');
+    if (ts) el.textContent = '🕐 ' + relTime(ts);
+  });
+  // Product last-updated times
+  document.querySelectorAll('.ts-rel').forEach(el => {
+    const ts = el.getAttribute('data-ts');
+    if (ts) el.textContent = relTime(ts);
+  });
+}
+renderAllTimes();
+setInterval(renderAllTimes, 30000);
+
+// ── Qty inline edit ──────────────────────────────────────────
+function startQtyEdit(pid, current) {
+  document.getElementById('qty-display-' + pid).style.display = 'none';
+  document.getElementById('last-updated-' + pid).style.display = 'none';
+  const box = document.getElementById('qty-edit-' + pid);
+  box.style.display = 'flex';
+  const inp = document.getElementById('qty-field-' + pid);
+  inp.value = current; inp.focus(); inp.select();
+}
+function cancelQtyEdit(pid) {
+  document.getElementById('qty-display-' + pid).style.display = 'inline-block';
+  document.getElementById('last-updated-' + pid).style.display = 'block';
+  document.getElementById('qty-edit-' + pid).style.display = 'none';
+}
+function handleQtyKey(e, pid) {
+  if (e.key === 'Enter')  saveQty(pid);
+  if (e.key === 'Escape') cancelQtyEdit(pid);
+}
+async function saveQty(pid) {
+  const qty = parseInt(document.getElementById('qty-field-' + pid).value, 10);
+  if (isNaN(qty) || qty < 0) { alert('Enter a valid number ≥ 0'); return; }
+  const res  = await fetch('/owner/update_stock', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ product_id: pid, quantity: qty })
+  });
+  const data = await res.json();
+  if (data.success) {
+    const disp = document.getElementById('qty-display-' + pid);
+    disp.textContent = qty + ' units ✏️';
+    disp.className   = 'qty-display ' + (qty > 5 ? 'qty-ok' : qty > 0 ? 'qty-low' : 'qty-zero');
+    document.getElementById('status-pill-' + pid).className =
+      'pill ' + (qty > 0 ? 'pill-in' : 'pill-out');
+    document.getElementById('status-pill-' + pid).textContent =
+      qty > 0 ? '✅ In Stock' : '❌ Out of Stock';
+    // Update last-updated display
+    const nowTs = Math.floor(Date.now() / 1000);
+    const luEl  = document.getElementById('last-updated-' + pid);
+    luEl.innerHTML = 'Updated: <span class="ts-rel" data-ts="' + nowTs + '">just now</span>';
+    cancelQtyEdit(pid);
+  } else {
+    alert('Error: ' + data.message);
+  }
+}
+</script>
+{% endblock %}

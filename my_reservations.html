@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}My Reservations – ShopWise{% endblock %}
+{% block content %}
+
+<style>
+.res-page { max-width: 760px; margin: 1.5rem auto; padding: 0 1rem; }
+.res-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  transition: box-shadow .15s;
+}
+.res-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+.res-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  background: #fff5f5; font-size: 1.5rem;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.res-body { flex: 1; }
+.res-body h3 { margin: 0 0 .2rem; font-size: .97rem; }
+.res-body p  { margin: 0; font-size: .78rem; color: var(--muted); }
+.res-status {
+  padding: .3rem .85rem; border-radius: 999px;
+  font-size: .74rem; font-weight: 700; white-space: nowrap;
+}
+.res-status.pending     { background: #fef3c7; color: #92400e; }
+.res-status.seen        { background: #dbeafe; color: #1d4ed8; }
+.res-status.confirmed   { background: #dcfce7; color: #15803d; }
+.res-status.unavailable { background: #fee2e2; color: #991b1b; }
+.chat-btn {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .4rem .9rem; border-radius: 8px;
+  background: var(--accent); color: #fff;
+  font-size: .8rem; font-weight: 600;
+  text-decoration: none; white-space: nowrap;
+  transition: opacity .15s;
+}
+.chat-btn:hover { opacity: .85; }
+.no-res { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+.no-res .icon { font-size: 3rem; margin-bottom: .5rem; }
+</style>
+
+<div class="res-page">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+    <h1 style="margin:0;font-size:1.3rem;">📋 My Reservations</h1>
+    <a href="/search" class="btn btn-secondary btn-sm">🔍 New Search</a>
+  </div>
+
+  {% if reservations %}
+    {% for r in reservations %}
+    <div class="res-card">
+      <div class="res-icon">🛍️</div>
+      <div class="res-body">
+        <h3>{{ r.product_name }} <span style="font-weight:400;color:var(--muted);">× {{ r.qty_reserved }}</span></h3>
+        <p>🏪 {{ r.shop_name }} &nbsp;·&nbsp; 📍 {{ r.shop_address }}</p>
+        <p style="margin-top:.15rem;">
+          🕐 {{ r.created_at }}
+        </p>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.5rem;">
+        <span class="res-status {{ r.status }}">
+          {% if r.status == 'confirmed' %}✅ Confirmed
+          {% elif r.status == 'unavailable' %}❌ Unavailable
+          {% elif r.status == 'pending' %}🕐 Waiting
+          {% else %}👁 Seen{% endif %}
+        </span>
+        <a href="/chat/{{ r.id }}" class="chat-btn">💬 Chat with Shop</a>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="no-res">
+      <div class="icon">📭</div>
+      <h3>No reservations yet</h3>
+      <p>Search for products and reserve items from nearby shops.</p>
+      <br/>
+      <a href="/search" class="btn btn-primary">🔍 Search Products</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

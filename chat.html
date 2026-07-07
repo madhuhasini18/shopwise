@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+{% block title %}Chat – ShopWise{% endblock %}
+{% block content %}
+
+<style>
+/* ── Chat Page Layout ───────────────────────────────────────── */
+.chat-page {
+  max-width: 680px;
+  margin: 1.5rem auto;
+  padding: 0 1rem 6rem;
+}
+.chat-header-card {
+  background: linear-gradient(135deg, var(--accent) 0%, #c0392b 100%);
+  color: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.chat-avatar {
+  width: 46px; height: 46px; border-radius: 50%;
+  background: rgba(255,255,255,.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; flex-shrink: 0;
+}
+.chat-header-info h2 { margin: 0; font-size: 1rem; font-weight: 700; }
+.chat-header-info p  { margin: 0; font-size: .78rem; opacity: .85; }
+.status-chip {
+  margin-left: auto; padding: .25rem .75rem;
+  border-radius: 999px; font-size: .72rem; font-weight: 700;
+  background: rgba(255,255,255,.2); white-space: nowrap;
+}
+.status-chip.confirmed   { background: #22c55e; color: #fff; }
+.status-chip.unavailable { background: #ef4444; color: #fff; }
+.status-chip.pending     { background: rgba(255,255,255,.25); }
+.status-chip.seen        { background: rgba(255,255,255,.15); }
+
+/* Reservation info bar */
+.res-info-bar {
+  background: #fff9f0;
+  border: 1px solid #fde68a;
+  border-top: none;
+  padding: .65rem 1.25rem;
+  font-size: .8rem;
+  color: #92400e;
+  display: flex; gap: 1.5rem; flex-wrap: wrap;
+}
+.res-info-bar span { display: flex; align-items: center; gap: .3rem; }
+
+/* Messages area */
+.chat-messages-area {
+  background: #f5f5f5;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  min-height: 380px;
+  max-height: 480px;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+
+/* Individual message bubbles */
+.msg-row { display: flex; flex-direction: column; max-width: 72%; }
+.msg-row.mine  { align-self: flex-end; align-items: flex-end; }
+.msg-row.theirs { align-self: flex-start; align-items: flex-start; }
+.msg-row.system { align-self: center; align-items: center; max-width: 90%; }
+
+.bubble {
+  padding: .55rem .9rem;
+  border-radius: 16px;
+  font-size: .88rem;
+  line-height: 1.45;
+  word-break: break-word;
+  position: relative;
+}
+.msg-row.mine .bubble {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.msg-row.theirs .bubble {
+  background: #fff;
+  color: #222;
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+.msg-row.system .bubble {
+  background: #fef3c7;
+  color: #78350f;
+  border: 1px solid #fde68a;
+  font-size: .78rem;
+  text-align: center;
+  border-radius: 10px;
+}
+.msg-meta {
+  font-size: .68rem;
+  color: var(--muted);
+  margin-top: .18rem;
+  padding: 0 .25rem;
+}
+
+/* Input area */
+.chat-input-area {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+  padding: .75rem 1rem;
+  display: flex;
+  gap: .5rem;
+  align-items: flex-end;
+}
+.chat-textarea {
+  flex: 1;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  padding: .55rem 1rem;
+  font-size: .9rem;
+  resize: none;
+  outline: none;
+  max-height: 100px;
+  line-height: 1.4;
+  font-family: inherit;
+  transition: border .15s;
+}
+.chat-textarea:focus { border-color: var(--accent); }
+.send-btn {
+  width: 42px; height: 42px;
+  background: var(--accent); color: #fff;
+  border: none; border-radius: 50%;
+  cursor: pointer; font-size: 1.1rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: opacity .15s;
+}
+.send-btn:hover { opacity: .85; }
+.send-btn:disabled { opacity: .4; cursor: default; }
+
+/* Quick reply chips (owner only) */
+.quick-replies {
+  padding: .5rem 1rem .25rem;
+  background: #fff;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  display: flex; gap: .4rem; flex-wrap: wrap;
+}
+.qr-chip {
+  padding: .28rem .75rem;
+  border: 1.5px solid var(--accent);
+  border-radius: 999px;
+  font-size: .75rem;
+  color: var(--accent);
+  cursor: pointer;
+  background: #fff;
+  transition: all .15s;
+  font-weight: 600;
+}
+.qr-chip:hover { background: var(--accent); color: #fff; }
+
+/* Back link */
+.back-bar {
+  margin-bottom: .75rem;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.back-bar a { font-size: .85rem; color: var(--accent); text-decoration: none; font-weight: 600; }
+.back-bar a:hover { text-decoration: underline; }
+
+/* Typing indicator */
+.typing-indicator { display: none; align-self: flex-start; }
+.typing-dots { display: flex; gap: 4px; padding: .5rem .8rem; background: #fff; border-radius: 16px; border: 1px solid var(--border); }
+.typing-dots span { width: 7px; height: 7px; background: #aaa; border-radius: 50%; animation: bounce .9s infinite; }
+.typing-dots span:nth-child(2) { animation-delay: .15s; }
+.typing-dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+</style>
+
+<div class="chat-page">
+  <div class="back-bar">
+    {% if current_role == 'shop_owner' %}
+      <a href="/owner">← Back to Dashboard</a>
+    {% else %}
+      <a href="/my-reservations">← My Reservations</a>
+    {% endif %}
+    <span style="font-size:.78rem;color:var(--muted);">Reservation #{{ reservation.id }}</span>
+  </div>
+
+  <!-- Header -->
+  <div class="chat-header-card">
+    <div class="chat-avatar">
+      {% if current_role == 'shop_owner' %}👤{% else %}🏪{% endif %}
+    </div>
+    <div class="chat-header-info">
+      {% if current_role == 'shop_owner' %}
+        <h2>{{ reservation.customer_name }}</h2>
+        <p>Customer · Reserved {{ reservation.qty_reserved }} × {{ reservation.product_name }}</p>
+      {% else %}
+        <h2>{{ shop.name }}</h2>
+        <p>{{ shop.address }} · {{ shop.area }}</p>
+      {% endif %}
+    </div>
+    <div class="status-chip {{ reservation.status }}" id="status-chip">
+      {% if reservation.status == 'confirmed' %}✅ Confirmed
+      {% elif reservation.status == 'unavailable' %}❌ Unavailable
+      {% elif reservation.status == 'pending' %}🕐 Pending
+      {% else %}👁 Seen{% endif %}
+    </div>
+  </div>
+
+  <!-- Reservation info bar -->
+  <div class="res-info-bar">
+    <span>🛍️ <strong>{{ reservation.product_name }}</strong></span>
+    <span>📦 Qty: <strong>{{ reservation.qty_reserved }}</strong></span>
+    <span>💰 ₹{{ '%.2f'|format(reservation.qty_reserved * (product.price if product else 0)) }}</span>
+    <span>📍 {{ shop.address if shop else '' }}</span>
+  </div>
+
+  <!-- Messages -->
+  <div class="chat-messages-area" id="chat-box">
+    {% for m in messages %}
+      {% if m['sender_role'] == 'system' %}
+        <div class="msg-row system">
+          <div class="bubble">{{ m['message'] }}</div>
+        </div>
+      {% elif m['sender_id'] == current_user_id %}
+        <div class="msg-row mine">
+          <div class="bubble">{{ m['message'] }}</div>
+          <div class="msg-meta">You · {{ m['sent_at']|string }}</div>
+        </div>
+      {% else %}
+        <div class="msg-row theirs">
+          <div class="bubble">{{ m['message'] }}</div>
+          <div class="msg-meta">{{ m['sender_name'] }}</div>
+        </div>
+      {% endif %}
+    {% endfor %}
+    <div class="typing-indicator" id="typing-indicator">
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div>
+  </div>
+
+  <!-- Quick replies for shop owner -->
+  {% if current_role == 'shop_owner' %}
+  <div class="quick-replies">
+    <button class="qr-chip" onclick="quickReply('Yes, the item is available! You can come pick it up.')">✅ Available – come pick up</button>
+    <button class="qr-chip" onclick="quickReply('Sorry, this item is currently out of stock.')">❌ Out of stock</button>
+    <button class="qr-chip" onclick="quickReply('Please come within 30 minutes to collect your reserved items.')">⏱ Come in 30 min</button>
+    <button class="qr-chip" onclick="quickReply('We are open from 9 AM to 9 PM. Please visit at your convenience.')">🕘 Shop timings</button>
+  </div>
+  {% else %}
+  <div class="quick-replies">
+    <button class="qr-chip" onclick="quickReply('Is the item still available?')">🔍 Is it still available?</button>
+    <button class="qr-chip" onclick="quickReply('I will come to pick up in about 20 minutes.')">🚶 Coming in 20 min</button>
+    <button class="qr-chip" onclick="quickReply('Can you please hold it for me?')">🙏 Please hold it for me</button>
+    <button class="qr-chip" onclick="quickReply('What are your shop timings?')">🕘 Shop timings?</button>
+  </div>
+  {% endif %}
+
+  <!-- Input area -->
+  <div class="chat-input-area">
+    <textarea
+      class="chat-textarea"
+      id="msg-input"
+      placeholder="Type a message…"
+      rows="1"
+      onkeydown="handleKey(event)"
+      oninput="autoResize(this)"
+    ></textarea>
+    <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Send">➤</button>
+  </div>
+</div>
+
+<script>
+const RID          = {{ reservation.id }};
+const MY_ID        = {{ current_user_id }};
+const MY_ROLE      = "{{ current_role }}";
+let   lastMsgId    = {{ messages[-1]['id'] if messages else 0 }};
+let   pollInterval = null;
+
+// Format unix timestamp to time string
+function fmtTime(ts) {
+  const d = new Date(ts * 1000);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function buildBubble(m) {
+  const row = document.createElement('div');
+  if (m.sender_role === 'system') {
+    row.className = 'msg-row system';
+    row.innerHTML = `<div class="bubble">${escHtml(m.message)}</div>`;
+  } else if (m.sender_id === MY_ID) {
+    row.className = 'msg-row mine';
+    row.innerHTML = `<div class="bubble">${escHtml(m.message)}</div>
+                     <div class="msg-meta">You · ${fmtTime(m.sent_at)}</div>`;
+  } else {
+    row.className = 'msg-row theirs';
+    row.innerHTML = `<div class="bubble">${escHtml(m.message)}</div>
+                     <div class="msg-meta">${escHtml(m.sender_name)} · ${fmtTime(m.sent_at)}</div>`;
+  }
+  return row;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function scrollBottom() {
+  const box = document.getElementById('chat-box');
+  box.scrollTop = box.scrollHeight;
+}
+
+async function pollMessages() {
+  try {
+    const r = await fetch(`/chat/${RID}/messages?since=${lastMsgId}`);
+    const d = await r.json();
+    if (d.success && d.messages.length > 0) {
+      const box = document.getElementById('chat-box');
+      const typing = document.getElementById('typing-indicator');
+      d.messages.forEach(m => {
+        if (m.sender_id !== MY_ID) {
+          // briefly show typing, then show message
+        }
+        const bubble = buildBubble(m);
+        box.insertBefore(bubble, typing);
+        lastMsgId = Math.max(lastMsgId, m.id);
+      });
+      scrollBottom();
+      // Update status chip if reservation status changed
+      if (d.reservation_status) updateStatusChip(d.reservation_status);
+    }
+  } catch(e) { /* silent */ }
+}
+
+function updateStatusChip(status) {
+  const chip = document.getElementById('status-chip');
+  chip.className = 'status-chip ' + status;
+  const labels = { confirmed: '✅ Confirmed', unavailable: '❌ Unavailable', pending: '🕐 Pending', seen: '👁 Seen' };
+  chip.textContent = labels[status] || status;
+}
+
+async function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const msg   = input.value.trim();
+  if (!msg) return;
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  input.value  = '';
+  autoResize(input);
+
+  // Optimistic bubble
+  const box    = document.getElementById('chat-box');
+  const typing = document.getElementById('typing-indicator');
+  const now    = Math.floor(Date.now() / 1000);
+  const optRow = buildBubble({ sender_id: MY_ID, sender_role: MY_ROLE, sender_name: 'You', message: msg, sent_at: now });
+  box.insertBefore(optRow, typing);
+  scrollBottom();
+
+  try {
+    const r = await fetch(`/chat/${RID}/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg })
+    });
+    const d = await r.json();
+    if (d.success) {
+      lastMsgId = Math.max(lastMsgId, d.message_id);
+    }
+  } catch(e) { /* ignore */ }
+  btn.disabled = false;
+  input.focus();
+}
+
+function quickReply(text) {
+  const input = document.getElementById('msg-input');
+  input.value = text;
+  autoResize(input);
+  sendMessage();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+// Start polling every 2.5 seconds
+document.addEventListener('DOMContentLoaded', () => {
+  scrollBottom();
+  pollInterval = setInterval(pollMessages, 2500);
+});
+
+window.addEventListener('beforeunload', () => clearInterval(pollInterval));
+</script>
+{% endblock %}

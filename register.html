@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Register – ShopWise{% endblock %}
+{% block content %}
+<div class="form-card" style="max-width:520px;">
+  <h2>🆕 Create Account</h2>
+  <p class="form-hint" style="margin-bottom:1.2rem;">Join ShopWise as a buyer or seller.</p>
+
+  <form method="POST">
+    <div class="field-group">
+      <label>Username</label>
+      <input type="text" name="username" placeholder="Choose a username" required/>
+    </div>
+    <div class="field-group">
+      <label>Password</label>
+      <input type="password" name="password" placeholder="Choose a password" required/>
+    </div>
+
+    <!-- Role Selection -->
+    <div class="field-group">
+      <label>I am a…</label>
+      <div class="role-cards" id="roleCards">
+        <label class="role-card selected" id="card-buyer">
+          <input type="radio" name="role_choice" value="customer" checked onchange="selectRole('buyer')"/>
+          <div class="role-icon">🛒</div>
+          <div class="role-label">Buyer</div>
+          <div class="role-desc">Browse and compare prices near me</div>
+        </label>
+        <label class="role-card" id="card-seller">
+          <input type="radio" name="role_choice" value="shop_owner" onchange="selectRole('seller')"/>
+          <div class="role-icon">🏪</div>
+          <div class="role-label">Seller</div>
+          <div class="role-desc">List my shop and manage products</div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Security Question for password recovery -->
+    <div class="field-group">
+      <label>Security Question</label>
+      <select name="security_question" required>
+        <option value="">Select a question…</option>
+        <option>What is your mother's maiden name?</option>
+        <option>What was the name of your first pet?</option>
+        <option>What city were you born in?</option>
+        <option>What is your favourite food?</option>
+        <option>What was the name of your primary school?</option>
+        <option>What is your favourite colour?</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label>Security Answer</label>
+      <input type="text" name="security_answer" placeholder="Your answer (case-insensitive)" required autocomplete="off"/>
+      <small style="color:var(--muted);font-size:.75rem;">Used to recover your account if you forget your password</small>
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="width:100%;margin-top:.6rem;">
+      Create Account →
+    </button>
+  </form>
+  <p class="form-hint" style="margin-top:1rem;">Already have an account? <a href="/login">Login</a></p>
+</div>
+
+<script>
+function selectRole(which) {
+  document.getElementById('card-buyer').classList.toggle('selected',  which === 'buyer');
+  document.getElementById('card-seller').classList.toggle('selected', which === 'seller');
+}
+</script>
+{% endblock %}

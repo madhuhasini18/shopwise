@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>{% block title %}ShopWise{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body>
+<nav class="navbar">
+  <a class="brand" href="/">🛒 ShopWise</a>
+  <div class="nav-links">
+    {% if session.role == 'customer' %}
+      <a href="/search">🔍 Search</a>
+      <a href="/my-reservations">📋 My Reservations</a>
+    {% elif session.role == 'shop_owner' %}
+      <a href="/owner">🏪 My Shop</a>
+      <a href="/owner" id="notif-link" style="position:relative;">
+        🔔 Notifications
+        <span id="notif-badge" style="
+          display:none; position:absolute; top:-6px; right:-10px;
+          background:#e53e3e; color:#fff; font-size:.62rem; font-weight:700;
+          border-radius:999px; padding:.1rem .38rem; min-width:16px; text-align:center;
+        ">0</span>
+      </a>
+      <a href="/owner/add">+ Product</a>
+      <a href="/owner/edit_shop">⚙️ Shop Settings</a>
+    {% elif session.role == 'admin' %}
+      <a href="/admin">🛡️ Admin</a>
+      <a href="/search">🔍 Search</a>
+    {% endif %}
+    {% if session.username %}
+      <span class="user-pill">👤 {{ session.username }}</span>
+      <a class="btn-nav" href="/logout">Logout</a>
+    {% else %}
+      <a class="btn-nav" href="/login">Login</a>
+      <a class="btn-nav ghost" href="/register">Register</a>
+    {% endif %}
+  </div>
+</nav>
+
+<!-- Push permission banner (shown only when needed) -->
+<div id="push-banner" style="
+  display:none; background:#1e3a5f; color:#fff;
+  padding:.65rem 1.2rem; font-size:.85rem;
+  display:none; align-items:center; gap:1rem; flex-wrap:wrap;
+  justify-content:center;
+">
+  <span>🔔 Enable notifications to get alerted when customers reserve items — even when this tab is closed.</span>
+  <button id="push-enable-btn" style="
+    background:#e53e3e; color:#fff; border:none; border-radius:8px;
+    padding:.38rem .9rem; font-weight:700; cursor:pointer; font-size:.82rem;
+  ">Enable Notifications</button>
+  <button onclick="document.getElementById('push-banner').style.display='none'" style="
+    background:transparent; color:rgba(255,255,255,.6); border:none;
+    cursor:pointer; font-size:.9rem; padding:.2rem .5rem;
+  ">✕</button>
+</div>
+
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash flash-{{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+
+<footer>
+  <p>© 2026 ShopWise · CVR College of Engineering · CSE(DS) · B.Tech II Year</p>
+</footer>
+
+<script>
+// ── Service Worker + Push registration (shop owners only) ────
+{% if session.role == 'shop_owner' %}
+const ROLE = 'shop_owner';
+{% else %}
+const ROLE = '{{ session.role or "" }}';
+{% endif %}
+
+let swReg = null;
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw     = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function registerSW() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    swReg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    console.log('SW registered');
+    if (ROLE === 'shop_owner') {
+      await checkPushPermission();
+    }
+  } catch(e) {
+    console.warn('SW registration failed:', e);
+  }
+}
+
+async function checkPushPermission() {
+  const perm = Notification.permission;
+  if (perm === 'granted') {
+    await subscribePush();
+  } else if (perm === 'default') {
+    // Show the banner asking to enable
+    const banner = document.getElementById('push-banner');
+    if (banner) banner.style.display = 'flex';
+    const btn = document.getElementById('push-enable-btn');
+    if (btn) btn.onclick = async () => {
+      const result = await Notification.requestPermission();
+      if (result === 'granted') {
+        banner.style.display = 'none';
+        await subscribePush();
+        showToast('✅ Notifications enabled! You will be alerted for new reservations.');
+      } else {
+        showToast('⚠️ Notifications blocked. You can enable them in browser settings.');
+        banner.style.display = 'none';
+      }
+    };
+  }
+  // If 'denied', do nothing (browser already blocked)
+}
+
+async function subscribePush() {
+  if (!swReg) return;
+  try {
+    // Get VAPID public key from server
+    const keyRes = await fetch('/push/vapid-public-key');
+    const keyData = await keyRes.json();
+    const appServerKey = urlBase64ToUint8Array(keyData.publicKey);
+
+    let sub = await swReg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await swReg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: appServerKey
+      });
+    }
+
+    // Send subscription to server
+    await fetch('/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub.toJSON())
+    });
+    console.log('Push subscription saved');
+  } catch(e) {
+    console.warn('Push subscribe error:', e);
+  }
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  Object.assign(t.style, {
+    position:'fixed', bottom:'1.5rem', left:'50%', transform:'translateX(-50%)',
+    background:'#1e3a5f', color:'#fff', padding:'.65rem 1.3rem',
+    borderRadius:'10px', fontSize:'.85rem', zIndex:'9999',
+    boxShadow:'0 4px 20px rgba(0,0,0,.25)', whiteSpace:'nowrap'
+  });
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 5000);
+}
+
+// Start
+registerSW();
+
+{% if session.role == 'shop_owner' %}
+// Poll in-page notification count every 8 seconds
+async function pollNotifications() {
+  try {
+    const r = await fetch('/owner/notifications/count');
+    const d = await r.json();
+    const badge = document.getElementById('notif-badge');
+    if (badge) {
+      if (d.count > 0) { badge.textContent = d.count; badge.style.display = 'inline-block'; }
+      else { badge.style.display = 'none'; }
+    }
+  } catch(e) {}
+}
+pollNotifications();
+setInterval(pollNotifications, 8000);
+{% endif %}
+</script>
+</body>
+</html>
