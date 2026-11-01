@@ -1,0 +1,1374 @@
+Task 1 git 
+
+
+
+Step 1: Install Git
+1.	Open your browser. 
+2.	Go to https://git-scm.com 
+3.	Click Download for Windows. 
+4.	Run the installer. 
+5.	Keep clicking Next with the default options. 
+6.	Click Install. 
+7.	Click Finish.
+Step 2: Verify Git Installation
+1.	Press Windows. 
+2.	Search for Git Bash. 
+3.	Open Git Bash. 
+A black terminal window will appear. Type 
+git –version
+git version 2.49.0.windows.1
+Step 3: Create a GitHub Account
+1.	Open your browser. 
+2.	Go to https://github.com 
+3.	Click Sign up. 
+4.	Enter: 
+o	Email 
+o	Password 
+o	Username 
+5.	Verify your email address. 
+Now you have a GitHub account.(later will work now open git command prompt)
+Type in git bash
+Cd Desktop
+mkdir GitLab
+cd AWP
+ls
+pwd(present working directory)
+it will display Cd C://users//cvr//Desktop//AWP
+Then start initialization 
+1.	git init  //initialization
+2.	Ls -a     // shows hidden items
+Configure the git
+3.	git config --global user.name “git hub username”  // Set your git username
+4.	git config --global user.email “git hub linked email”   // det your git email
+5.	git config  --list   // display username and password
+
+press q button if it shows END
+create  files(text or html files) in your project folder 
+6.	git add .   // add html files in git folder
+7.	git status   // it will display the html files
+8.	git commit -m ‘home page added’    // committed changes to files with a message
+9.	git log
+
+Pushing our local file to git hub 
+10.	Open git hub
+11.	Create new repository
+12.	Repo name
+13.	Create repo and link will be created
+We need to establish connection to git bash to git hub
+14.	Git remote add origin “repository link”// add a remote repository
+15.	Git remote -v
+16.	Git push -u origin master    // pushes files to github, check in github repository
+17.	Git add .     // if you add any new files or done any modification to your project folder then should repeat this steps
+18.	Git status
+19.	Git commit
+20.	Git clone “git hub url”   // it will add your repository files to local system means to your project
+
+
+_________________________________
+
+Task 3 os http 
+
+
+const os = require('os');
+console.log("Type of OS:"+os.type());
+console.log("Architecture:"+os.arch()); 
+console.log("Hostname:"+os.hostname());
+console.log("Platform:"+os.platform());
+console.log("Total Available memory:"+os.totalmem()+" bytes");
+console.log("Free memory:"+os.freemem()+" bytes");
+const c = os.cpus();
+console.log("Number of CPUs:"+c.length);
+for(i in c)
+console.log(c[i]);
+_________________________________
+const http = require('http');
+const server = http.createServer((request, response) => {
+    response.writeHead(200, { 'Content-Type': 'text/html' });
+    response.write("<h1>Welcome to Node.js</h1>");
+    response.write("<h2>Home Page</h2>");
+    response.write("<p>This is my first web server.</p>");
+    response.end();
+
+});
+
+server.listen(3000, () => {
+    console.log("Server is running at http://localhost:3000");
+});
+
+_________________________________
+const http = require("http");
+const port = 8000;
+const server = http.createServer(function (request, response) {
+    response.setHeader("Content-Type", "text/html");
+    if (request.url === "/home") {
+        response.write("<h1 style='color:red'>Welcome to Home page of my website</h1>");
+        response.write("<h2>Home page</h2>");
+        response.end();
+    } 
+    else if (request.url === "/login") {
+        response.write("<h1 style='color:red'>Welcome to Login page of my website</h1>");
+        response.write("<h2>Login page</h2>");
+        response.end();
+    } 
+    else {
+        response.statusCode = 404;
+        response.write("<h1>404 - Page Not Found</h1>");
+        response.end();
+    }
+});
+
+server.listen(port, function () {
+    console.log("Server Started...");
+    console.log("Server is listening on " + port);
+});
+_________________________________
+
+Task 4 restapi crud operations 
+
+Restserver.js
+
+
+const http = require('http');
+const stu = require('./students.json');
+const fs = require('fs');
+const url = require('url');
+const port = 8000;
+const server = http.createServer(function(req,res)
+{  
+	res.setHeader("Content-Type","text/html");
+	if(req.method == "GET" && req.url=="/")		//endpoint 1
+	{
+		res.write("<h1>Welcome to my REST API SERVER</h1>");
+		res.end();
+	}	
+
+	if(req.method == "GET" && req.url=="/list")	//endpoint 2
+	{
+		fs.readFile("students.json",function(err,data)
+		{
+			res.write(data);
+			res.end();
+		});
+
+	} 
+	if(req.method == "POST")	//endpoint 3
+	{
+		newStu = url.parse(req.url,true).query;
+		stu.push(newStu);
+		mywrite(stu);
+		res.write("<h1>Student REcord inserted");
+		res.end();
+	}
+
+	if(req.method == "PUT")	//endpoint 4
+	{
+		upStu = url.parse(req.url,true).query;
+		for (s in stu)
+			{
+				if(stu[s]['roll']==upStu['roll'])
+					{
+						stu[s]['name']=upStu['name']
+							stu[s]['year']=upStu['year']
+							stu[s]['branch']=upStu['branch']
+							stu[s]['cgpa']=upStu['cgpa']
+							mywrite(stu)
+							res.write("Updated Successfully")
+					}
+						
+			}
+					res.end()
+
+			}
+			if(req.method=="DELETE")
+				{
+					delStu=url.parse(req.url,true).query;
+					for(s in stu)
+						{
+							if(stu[s]['roll']==delStu['roll'])
+								{
+									stu.splice(s,1);
+									mywrite(stu)
+									res.write("Deleted Successfully")
+								}
+						}
+						res.end()
+				}
+				
+		
+	function mywrite(data)
+	
+	{
+		fs.writeFile("students.json",JSON.stringify(data),function(err)
+		{
+			
+		});
+	}
+});
+
+server.listen(port,function()
+{
+	console.log("Server Started...");
+	console.log("Server is listening on: "+port);
+
+});
+
+
+_________________________________students.json
+
+
+[{"name":"Aarav","roll":"101","branch":"CSE","year":"3","cgpa":"8.9"},{"name":"rani","roll":"102","branch":"cse","year":"4","cgpa":"9.1"},{"name":"nnnn","roll":"103"},{"name":"nitya","roll":"104"},{"name":"Eshwar","roll":"105","branch":"DS","year":"3","cgpa":"9.1"},{"name":"ds-B","roll":"12345"},{"name":"john","roll":"100"},{"name":"data","roll":"500"},{"name":"john","roll":"100"}]
+
+
+
+_________________________________
+Method	requests					action
+GET	http://127.0.0.1:8000/		-> home page of API
+GET	http://localhost:8000/list	-> list of students in Students.json
+POST	http://localhost:8000/?name=john&roll=100  ->insert in Students.json
+PUT	http://localhost:8000/?roll=102&name=poorvi&branch=it&year=4&cgpa=9.1 ->update
+DELETE	http://localhost:6000/?roll=100		   ->delete
+http://localhost:8000/?roll=102&name=poorvi&branch=it&year=4&cgpa=9.1
+
+_________________________________
+Task 5 postman crud operations 
+
+
+const express = require('express');
+const fs = require('fs');
+const bp = require('body-parser');
+
+const app = express();
+const port = 6000;
+let stu = require('./students.json');
+
+app.use(bp.urlencoded({ extended: true }));
+app.use(bp.json());
+
+// Home route
+app.get("/", function (req, res) {
+  res.send("<h3>Welcome to Express REST API SERVER</h3>");
+});
+
+// Get all students
+app.get("/list", function (req, res) {
+  fs.readFile("students.json", function (err, data) {
+    if (err) {
+      console.error("Error reading file:", err);
+      res.status(500).send("Error reading file.");
+      return;
+    }
+    res.write(data);
+    res.end();
+  });
+});
+
+// Insert student
+app.post("/", function (req, res) {
+  console.log("Received POST data:", req.body); // Debug
+  const newstu = req.body;
+  if (!newstu || !newstu.name || !newstu.roll) {
+    return res.status(400).send("Invalid student data");
+  }
+  stu.push(newstu);
+  stu = stu.filter(s => s !== null);  //Cleans the array to remove any accidental null values
+  mywrite(stu);
+  res.send("Inserted");
+});
+
+// Update student
+app.put("/", function (req, res) {
+  const upstu = req.body;
+  let found = false;
+
+  for (let s in stu) {
+    if (stu[s]["roll"] == upstu["roll"]) {
+      stu[s]["name"] = upstu["name"];
+      found = true;
+      break;
+    }
+  }
+
+  if (found) {
+    mywrite(stu);
+    res.send("Updated successfully");
+  } else {
+    res.status(404).send("Student not found");
+  }
+});
+
+// Delete student
+app.delete("/", function (req, res) {
+  const delstu = req.body;
+  const initialLength = stu.length;
+
+  stu = stu.filter(s => s && s.roll !== delstu["roll"]);
+
+  if (stu.length < initialLength) {
+    mywrite(stu);
+    res.send("Deleted successfully");
+  } else {
+    res.status(404).send("Student not found");
+  }
+});
+
+// Write to file
+function mywrite(data) {
+  fs.writeFile("students.json", JSON.stringify(data, null, 2), function (err) {
+    if (err) console.error("Error writing file:", err);
+  });
+}
+
+// Start server
+app.listen(port, function () {
+  console.log("Server started on port " + port);
+});
+_________________________________
+
+Task 6
+
+
+const express = require('express');
+const fs = require('fs');
+const bp = require('body-parser');
+const jwt = require('jsonwebtoken');
+
+const app = express();
+const port = 6003;
+let stu = require('./students.json');
+
+app.use(bp.urlencoded({ extended: true })); //Allows Express to understand form data and JSON sent in requests.
+app.use(bp.json());
+
+const SECRET_KEY = "mysecretkey"; // Use .env in real projects
+
+// Generate JWT Token (Login Route)
+app.post("/login", function (req, res) {
+  const { username, password } = req.body;
+  
+  // Dummy authentication
+  if (username === "admin" && password === "12345") {
+    const token = jwt.sign({ user: username }, SECRET_KEY, { expiresIn: '1h' });
+    res.json({ token });
+  } else {
+    res.status(401).send("Invalid credentials");
+  }
+});
+
+// JWT Middleware
+function verifyToken(req, res, next) {
+  const bearerHeader = req.headers['authorization'];
+
+  if (typeof bearerHeader !== 'undefined') {
+    const token = bearerHeader.split(' ')[1];
+
+    jwt.verify(token, SECRET_KEY, (err, authData) => {
+      if (err) {
+        res.status(403).send("Invalid token");
+      } else {
+        req.user = authData;
+        req.password=authData;
+        next();
+      }
+    });
+  } else {
+    res.status(403).send("Token missing");
+  }
+}
+
+// Home
+app.get("/", (req, res) => {
+  res.send("<h3>JWT Protected Express REST API</h3>");
+});
+
+// Protected Routes
+app.get("/list", verifyToken, (req, res) => {
+  fs.readFile("students.json", function (err, data) {
+    if (err) return res.status(500).send("Error reading file.");
+    res.write(data);
+    res.end();
+  });
+});
+
+app.post("/", verifyToken, (req, res) => {
+  const newstu = req.body;
+  if (!newstu || !newstu.name || !newstu.roll) {
+    return res.status(400).send("Invalid student data");
+  }
+  stu.push(newstu);
+  mywrite(stu);
+  res.send("Inserted");
+});
+
+app.put("/", verifyToken, (req, res) => {
+  const upstu = req.body;
+  let found = false;
+
+  for (let s in stu) {
+    if (stu[s]["roll"] == upstu["roll"]) {
+      stu[s]["name"] = upstu["name"];
+      found = true;
+      break;
+    }
+  }
+
+  if (found) {
+    mywrite(stu);
+    res.send("Updated successfully");
+  } else {
+    res.status(404).send("Student not found");
+  }
+});
+
+app.delete("/", verifyToken, (req, res) => {
+  const delstu = req.body;
+  const initialLength = stu.length;
+
+  stu = stu.filter(s => s && s.roll !== delstu["roll"]);
+
+  if (stu.length < initialLength) {
+    mywrite(stu);
+    res.send("Deleted successfully");
+  } else {
+    res.status(404).send("Student not found");
+  }
+});
+
+// Write to file
+function mywrite(data) {
+  fs.writeFile("students.json", JSON.stringify(data, null, 2), function (err) {
+    if (err) console.error("Error writing file:", err);
+  });
+}
+
+// Start Server
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
+
+_________________________________
+
+Task 7 helloworld display 
+
+Steps in vscode terminal 
+
+
+npx create-react-app react_helloworld
+cd react_helloworld
+npm start
+write program in App.js
+
+import React from 'react';
+
+function App() {
+  return (
+    <div>
+      <h1>Hello World</h1>
+      <p>Welcome to your first React app!</p>
+    </div>
+  );
+}
+
+export default App;
+_________________________________
+
+Task 8 
+Steps in terminal 
+npx create-react-app react_task8
+cd react_task8
+npm start
+
+
+In app.js
+
+import React from "react";
+
+function App() {
+  const currentDateTime = new Date().toLocaleString();
+
+  return (
+    <div>
+      <h1>Current System Date and Time</h1>
+      <p>{currentDateTime}</p>
+    </div>
+  );
+}
+
+export default App;
+
+____________________________
+
+
+Task 9
+a)functional component using props 
+
+Steps in terminal 
+npx create-react-app react_task8
+cd react_task8
+npm start
+
+In app.js
+
+
+import React from "react";
+
+function Greeting(props) {
+  return <h1>Hello, {props.name}!</h1>;
+}
+function App() {
+  return (
+    <div>
+      <Greeting name="Alice" />
+    </div>
+  );
+}
+
+export default App;
+
+_________________________________
+Task 9b class component accepts arbitrary values
+
+
+Steps in terminal 
+npx create-react-app react_task8
+cd react_task8
+npm start
+
+In app.js
+
+import React, { Component } from "react";
+
+class GreetingClass extends Component {
+  render() {
+    return <h1>Hello, {this.props.name}!</h1>;
+  }
+}
+
+function App() {
+  return (
+    <div>
+      <GreetingClass name="Bob" />
+    </div>
+  );
+}
+
+export default App;
+
+_________________________________
+
+
+Task 10 date display using class component 
+
+
+
+import React, { Component } from "react";
+
+class DateDisplay extends Component
+{
+    render()
+    {
+        return (
+            <div>
+                <h2>Date received from state</h2>
+                <p>{this.props.date}</p>
+            </div>
+        );
+    }
+}
+
+class App extends Component
+{
+    constructor(props)
+    {
+        super(props);
+
+        this.state = {
+            date: new Date().toLocaleDateString()
+        };
+    }
+
+    render()
+    {
+        return (
+            <div>
+                <h1>Current Date</h1>
+                <DateDisplay date={this.state.date} />
+
+</div>
+);
+}}
+export default App;
+
+_________________________________
+
+
+
+Task 11 lifecycle demo
+
+import React, { Component } from "react";
+
+class LifecycleDemo
+ extends Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      count: 0
+    };
+
+    console.log("1. Constructor called");
+  }
+
+  componentDidMount()   // This method is called AFTER the component's state inserted into the webpage (DOM).
+{
+    console.log("2. Component Did Mount");
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    console.log("3. Component Did Update");
+    console.log("Previous count:", prevState.count);
+    console.log("Current count:", this.state.count);
+  }
+
+  componentWillUnmount() {
+    console.log("4. Component Will Unmount");
+  }
+
+  increaseCount = () => {
+    this.setState({
+      count: this.state.count + 1
+    });
+  };
+
+  render() {
+    console.log("Render called");
+
+    return (
+      <div style={{ textAlign: "center", marginTop: "50px" }}>
+        <h1>React Component Lifecycle</h1>
+
+        <h2>Count: {this.state.count}</h2>
+
+        <button onClick={this.increaseCount}>
+          Increase Count
+        </button>
+      </div>
+    );
+  }
+}
+
+class App extends Component {
+  state = {
+    show: true
+  };
+
+  toggleComponent = () => {
+    this.setState({
+      show: !this.state.show
+    });
+  };
+
+  render() {
+    return (
+      <div>
+        {this.state.show && <LifecycleDemo />}
+
+        <button onClick={this.toggleComponent}>
+          Mount / Unmount Component
+        </button>
+      </div>
+    );
+  }
+}
+
+export default App;
+
+
+
+_______________________________
+
+Task 12 two buttons goodbye and date 
+
+
+
+
+import React, { Component } from "react";
+
+class App extends Component {
+
+  // Normal function
+  showDateTime() {
+    document.getElementById("result").innerHTML =
+      new Date().toLocaleString();
+  }
+
+  // Arrow function
+  showGoodBye = () => {
+    document.getElementById("result").innerHTML = "Good Bye";
+  };
+
+  render() {
+    return (
+      <div>
+        <h1>React Event Handling</h1>
+
+        <button onClick={this.showDateTime.bind(this)}> //Binds the normal method to the component
+          Show Date & Time
+        </button>
+
+        <button onClick={this.showGoodBye}>
+          Good Bye
+        </button>
+
+        <h2 id="result"></h2>
+      </div>
+    );
+  }
+}
+
+export default App;
+
+
+_________________________________
+Task 13 calculator 
+
+
+
+import React, { useState } from "react";
+
+function App() {
+  const [a, setA] = useState("");
+  const [b, setB] = useState("");
+  const [result, setResult] = useState("");
+
+  return (
+    <div>
+      <h1>Simple Calculator</h1>
+      <input
+        type="number"
+        placeholder="First number"
+        onChange={(e) => setA(e.target.value)}
+      />
+      <br />
+      <br />
+      <input
+        type="number"
+        placeholder="Second number"
+        onChange={(e) => setB(e.target.value)}
+      />
+      <br />
+      <br />
+      <button onClick={() => setResult(Number(a) + Number(b))}>+</button>
+      <button onClick={() => setResult(Number(a) - Number(b))}>-</button>
+      <button onClick={() => setResult(Number(a) * Number(b))}>*</button>
+      <button onClick={() => setResult(Number(a) / Number(b))}>/</button>
+
+      <h2>Result: {result}</h2>
+    </div>
+  );
+}
+
+export default App;
+
+_________________________________
+
+Task 14 registration page 
+
+
+import React, { useState } from "react";
+
+function App() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    alert("Registration Successful!");
+  };
+
+  return (
+    <div>
+      <h1>Registration Form</h1>
+
+      <form onSubmit={handleSubmit}>
+
+        <label>Name:</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+
+        <br /><br />
+
+        <label>Email:</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <br /><br />
+
+        <label>Password:</label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        <br /><br />
+
+        <button type="submit">Register</button>
+
+      </form>
+    </div>
+  );
+}
+
+export default App;
+
+
+
+_________________________________
+
+
+
+Task 15 routers 
+
+
+
+/*Step 1: Install React Router
+
+In the terminal:
+npm install react-router-dom
+
+Clicking each link changes the page without reloading the browser.*/
+
+import React from "react";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+
+function Home() {
+  return <h2>Home Page</h2>;
+}
+
+function Product() {
+  return <h2>Product Page</h2>;
+}
+
+function About() {
+  return <h2>About Page</h2>;
+}
+
+function Contact() {
+  return <h2>Contact Page</h2>;
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+
+      <h1>React Router Example</h1>
+
+      <nav>
+        <Link to="/">Home</Link> |
+        <Link to="/product">Product</Link> |
+        <Link to="/about">About</Link> |
+        <Link to="/contact">Contact</Link>
+      </nav>
+
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/product" element={<Product />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+      </Routes>
+
+    </BrowserRouter>
+  );
+}
+
+export default App;
+
+_________________________________
+Weather program
+
+
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+} from "chart.js";
+
+import { Line } from "react-chartjs-2";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+function App() {
+  const [weather, setWeather] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [error, setError] = useState("");
+
+  // Put your API key here
+  const API_KEY = "cb375db859dc552487a4d03fab36d93e";
+  const city = "Hyderabad";
+
+  useEffect(() => {
+
+    // -----------------------------
+    // 1. CURRENT WEATHER
+    // -----------------------------
+
+    axios
+      .get(
+        `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric`
+      )
+      .then((response) => {
+        console.log("Current Weather:", response.data);
+
+        setWeather(response.data);
+      })
+      .catch((error) => {
+        console.log(
+          "Current Weather Error:",
+          error.response?.data || error.message
+        );
+
+        setError(
+          error.response?.data?.message ||
+          "Unable to fetch current weather"
+        );
+      });
+
+
+    // -----------------------------
+    // 2. FORECAST WEATHER
+    // -----------------------------
+
+    axios
+      .get(
+        `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${API_KEY}&units=metric`
+      )
+      .then((response) => {
+
+        console.log("Forecast Response:", response.data);
+
+        const data = response.data.list.slice(0, 8);
+
+        const result = data.map((item) => ({
+          time: item.dt_txt,
+          temperature: item.main.temp
+        }));
+
+        console.log("Chart Data:", result);
+
+        setHistory(result);
+      })
+      .catch((error) => {
+
+        console.log(
+          "Forecast Error:",
+          error.response?.data || error.message
+        );
+
+        setError(
+          error.response?.data?.message ||
+          "Unable to fetch forecast data"
+        );
+      });
+
+  }, []);
+
+
+  // -----------------------------
+  // CHART DATA
+  // -----------------------------
+
+  const chartData = {
+    labels: history.map((item) => item.time),
+
+    datasets: [
+      {
+        label: "Temperature (°C)",
+
+        data: history.map((item) => item.temperature),
+
+        borderWidth: 3,
+
+        pointRadius: 5,
+
+        tension: 0.3
+      }
+    ]
+  };
+
+
+  // -----------------------------
+  // CHART OPTIONS
+  // -----------------------------
+
+  const chartOptions = {
+    responsive: true,
+
+    plugins: {
+      legend: {
+        display: true
+      },
+
+      title: {
+        display: true,
+        text: "Hyderabad Weather Forecast"
+      }
+    },
+
+    scales: {
+      y: {
+        beginAtZero: false,
+
+        title: {
+          display: true,
+          text: "Temperature (°C)"
+        }
+      },
+
+      x: {
+        title: {
+          display: true,
+          text: "Date and Time"
+        }
+      }
+    }
+  };
+
+
+  // -----------------------------
+  // DISPLAY
+  // -----------------------------
+
+  return (
+    <div
+      style={{
+        width: "80%",
+        margin: "30px auto",
+        fontFamily: "Arial"
+      }}
+    >
+
+      <h1>Weather Information</h1>
+
+
+      {/* ERROR MESSAGE */}
+
+      {error && (
+        <div
+          style={{
+            backgroundColor: "#ffe6e6",
+            padding: "10px",
+            marginBottom: "20px",
+            border: "1px solid red"
+          }}
+        >
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
+
+      {/* CURRENT WEATHER */}
+
+      {weather ? (
+        <div>
+
+          <h2>{weather.name}</h2>
+
+          <p>
+            <strong>Temperature:</strong>{" "}
+            {weather.main.temp} °C
+          </p>
+
+          <p>
+            <strong>Feels Like:</strong>{" "}
+            {weather.main.feels_like} °C
+          </p>
+
+          <p>
+            <strong>Humidity:</strong>{" "}
+            {weather.main.humidity} %
+          </p>
+
+          <p>
+            <strong>Weather:</strong>{" "}
+            {weather.weather[0].description}
+          </p>
+
+          <p>
+            <strong>Wind Speed:</strong>{" "}
+            {weather.wind.speed} m/s
+          </p>
+
+        </div>
+      ) : (
+        <p>Loading current weather...</p>
+      )}
+
+
+      {/* WEATHER GRAPH */}
+
+      <h2>Weather Graph</h2>
+
+      {history.length > 0 ? (
+        <Line
+          data={chartData}
+          options={chartOptions}
+        />
+      ) : (
+        <p>Loading weather graph...</p>
+      )}
+
+    </div>
+  );
+}
+
+export default App;
+
+
+Fire base::: 
+Fire base console 
+Click on a project 
+E ter project name 
+Continue 
+Select an account 
+Create project 
+After creating a project 
+Open that project 
+Click add app
+On that select web
+Name for web app
+Register app
+Select use script tag
+Copy the const firebase configuration 
+Click continue to console
+Click on data base and storage on that select realtime data base 
+Click on create data base
+Select location to Singapore 
+Click on next 
+Select in test mode 
+Click enable 
+Copy the path
+
+
+
+task 2 fire base                                    
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Management System</title>
+</head>
+
+<body>
+
+<h2>Student Management System</h2>
+
+Enter Student Name:
+<input type="text" id="name">
+<br><br>
+
+Enter Student Roll Number:
+<input type="text" id="roll">
+<br><br>
+
+Enter Student Branch:
+<input type="text" id="br">
+<br><br>
+
+Enter Student Year:
+<input type="text" id="yr">
+<br><br>
+
+Enter Student CGPA:
+<input type="text" id="cg">
+<br><br>
+
+<input type="button" value="INSERT" id="b1">
+<input type="button" value="DELETE" id="b2">
+<input type="button" value="UPDATE" id="b3">
+<input type="button" value="DISPLAY" id="b4">
+
+<h3>Student Details</h3>
+<div id="d"></div>
+
+<script type="module">
+
+// Import Firebase functions
+import { initializeApp } from
+"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+    getDatabase, set, ref, get, update, remove, child
+} from
+"https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+// Firebase Configuration
+const firebaseConfig = {
+
+
+    apiKey: "AIzaSyCQbGDfw4ufHgCLJlkLok5JBf5j3OJxMUE",
+    authDomain: "awpexternal-d5940.firebaseapp.com",
+    databaseUrl:"https://awpexternal-d5940-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "awpexternal-d5940",
+    storageBucket: "awpexternal-d5940.firebasestorage.app",
+    messagingSenderId: "327350194152",
+    appId: "1:327350194152:web:57891ca7146f59535fde5d",
+    measurementId: "G-E299RSV6PV"
+  
+
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+// Connect to Realtime Database
+const dbref = getDatabase(app,"https://awpexternal-d5940-default-rtdb.asia-southeast1.firebasedatabase.app");
+
+// Button Events
+document.getElementById("b1").addEventListener("click", insertData);
+document.getElementById("b2").addEventListener("click", deleteData);
+document.getElementById("b3").addEventListener("click", updateData);
+document.getElementById("b4").addEventListener("click", displayData);
+
+
+// INSERT DATA
+function insertData() {
+
+    var n = document.getElementById("name").value;
+    var r = document.getElementById("roll").value;
+    var b = document.getElementById("br").value;
+    var y = document.getElementById("yr").value;
+    var c = document.getElementById("cg").value;
+
+    if (!n || !r || !b || !y || !c) {
+        alert("Please fill all fields");
+        return;
+    }
+
+    var ob = {
+        name: n,
+        roll:r,
+        branch: b,
+        year: y,
+        cgpa: c
+    };
+
+    set(ref(dbref, "Student/" + r), ob)
+    .then(() => {
+        alert("Student Data Inserted Successfully");
+    })
+    .catch(error => alert(error.message));
+
+}
+
+
+// DELETE DATA
+function deleteData() {
+
+    var r = document.getElementById("roll").value;
+
+    if (r == "") {
+        alert("Please enter roll number");
+        return;
+    }
+
+    remove(ref(dbref, "Student/" + r))
+    .then(() => {
+        alert("Student Data Deleted Successfully");
+    })
+    .catch(error => alert(error.message));
+
+}
+
+
+// UPDATE DATA
+function updateData() {
+
+    var n = document.getElementById("name").value;
+    var r = document.getElementById("roll").value;
+    var b = document.getElementById("br").value;
+    var y = document.getElementById("yr").value;
+    var c = document.getElementById("cg").value;
+
+    if (r == "") {
+        alert("Please enter roll number");
+        return;
+    }
+
+    var ob = {
+        name: n,
+        branch: b,
+        year: y,
+        cgpa: c
+    };
+
+    update(ref(dbref, "Student/" + r), ob)
+    .then(() => {
+        alert("Student Data Updated Successfully");
+    })
+    .catch(error => alert(error.message));
+
+}
+
+
+// DISPLAY DATA
+function displayData() {
+
+    var r = document.getElementById("roll").value;
+
+    if (r == "") {
+        alert("Please enter roll number");
+        return;
+    }
+
+    get(child(ref(dbref), "Student/" + r))
+    .then(function(data) {
+
+        if (data.exists()) {
+
+            var ob = data.val();
+
+            document.getElementById("d").innerHTML =
+
+                "Roll Number: " + r + "<br>" +
+                "Name: " + ob.name + "<br>" +
+                "Branch: " + ob.branch + "<br>" +
+                "Year: " + ob.year + "<br>" +
+                "CGPA: " + ob.cgpa;
+
+        }
+        else {
+            alert("NO DATA AVAILABLE");
+        }
+
+    })
+    .catch(error => alert(error.message));
+
+}
+
+</script>
+
+</body>
+</html>
